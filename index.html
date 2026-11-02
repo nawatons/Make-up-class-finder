@@ -42,6 +42,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .tabs button[aria-selected=true]{color:var(--ac);border-bottom-color:var(--ac)}
 .mx{border-collapse:collapse;font-size:13px}.mx th,.mx td{border:1px solid var(--bd);padding:5px 8px;text-align:center}.mx th{background:var(--bg)}
 .hx th,.hx td{text-align:left}
+.stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}@media(max-width:600px){.stat{grid-template-columns:repeat(2,1fr)}}
+.stat div{border:1px solid var(--bd);border-radius:8px;padding:10px;text-align:center}.stat b{display:block;font-size:24px;line-height:1.3}.stat span{font-size:12px;color:var(--mut)}
 .c-bk{background:var(--pkbg)}.c-bk b,.c-bk .bkd{color:var(--pk)}
 .c-reg{background:var(--rgbg)}.c-reg b{color:var(--rg)}.c-canc{background:var(--bg);color:var(--mut);box-shadow:inset 0 0 0 2px var(--rgbg)}
 .iw input[type=text],.iw input[type=password],input[type=text].f,input[type=password].f{width:100%;padding:7px 9px;border:1px solid var(--bd);border-radius:7px;background:var(--bg)}
@@ -49,7 +51,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <meta name="robots" content="noindex"></head><body><main>
 <div class="row" style="align-items:center;gap:12px"><h1 style="flex:1">ระบบหาวันเรียนชดเชย</h1><select id="lg" aria-label="Language" style="flex:0 0 auto;width:auto"><option value="th">ไทย</option><option value="en">English</option></select></div>
 <p class="sub">เลือกกลุ่มเรียนที่งดสอน แล้วระบบจะหาวันและเวลาที่ไม่มีนักศึกษาในกลุ่มนั้นติดเรียนกลุ่มอื่น ข้อมูลเก็บร่วมกันใน Google Sheet ของออฟฟิศ</p>
-<div class="tabs" role="tablist"><button role="tab" id="tb-main" aria-selected="true">ตารางและค้นหา</button><button role="tab" id="tb-hist" aria-selected="false">ประวัติ</button></div>
+<div class="tabs" role="tablist"><button role="tab" id="tb-main" aria-selected="true">ตารางและค้นหา</button><button role="tab" id="tb-sch" aria-selected="false">แก้ไขวันเรียนปกติ</button><button role="tab" id="tb-hist" aria-selected="false">ประวัติ</button></div>
 <div class="note" id="ctl" style="margin:0 0 14px"></div>
 <div id="pg-main">
 <div class="grid"><div>
@@ -83,7 +85,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div class="row"><div><label>ค้นหาตั้งแต่วันที่</label><input type="date" id="d1"></div><div><label>ถึงวันที่</label><input type="date" id="d2"></div></div>
 <label>วันที่เรียนชดเชยได้</label>
 <div class="days" id="days"></div>
-<label>เวลาเริ่มคาบ (คาบละ 3 ชั่วโมง)</label>
+<label>ช่วงเวลา (ช่วงเย็นรวมคาบที่เริ่ม 16:00 และ 17:00)</label>
 <div class="days" id="pers"></div>
 <label>ยอมให้ชนได้สูงสุด (คน)</label><input type="number" id="mx" value="0" min="0">
 <label>วันหยุด (บรรทัดละ 1 วัน รูปแบบ 2026-10-13)</label><textarea id="hol" rows="3"></textarea>
@@ -95,7 +97,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 <div class="note">สีฟ้า = คาบเรียนปกติของกลุ่มที่เลือก (คลิกเพื่อยกเลิกคาบนั้น) สีเขียว = นักศึกษาว่างทุกคน สีส้ม = มีคนติดเรียนกลุ่มอื่น สีชมพู = จองชดเชยไว้แล้ว (คลิกเพื่อยกเลิกการจอง) คลิกช่องเขียวหรือส้มเพื่อจองเป็นวันชดเชย</div></div>
 <div class="card"><h2>ผลการค้นหา</h2><div id="out" class="note">เลือกกลุ่มเรียนและกดค้นหา</div></div>
 </div></div></div>
+<div id="pg-sch" hidden>
+<div class="card"><h2>แก้ไขวันเรียนปกติ</h2>
+<div class="note" style="margin:0 0 10px">ใช้เมื่อวิชาใดเปลี่ยนวันหรือเวลาเรียนปกติ เช่นหลังกลางภาค ระบบจะใช้ตารางใหม่ตั้งแต่วันที่ระบุเป็นต้นไป ส่วนวันก่อนหน้ายังเป็นตารางเดิม</div>
+<label>กลุ่มเรียน</label><select id="hsec"></select>
+<div class="note" id="hcur"></div>
+<div id="hform" hidden>
+<div class="row"><div><label>วันเรียนใหม่</label><select id="hday"></select></div><div><label>มีผลตั้งแต่วันที่</label><input type="date" id="hfrom"></div></div>
+<div class="row"><div><label>เวลาเริ่ม</label><input type="time" id="hs"></div><div><label>เวลาเลิก</label><input type="time" id="he"></div></div>
+<button class="p" id="hsave">บันทึกตารางเรียนใหม่</button></div>
+<div class="note" id="hnote" hidden>เฉพาะผู้ดูแลระบบที่แก้ไขได้</div></div>
+<div class="card"><h2>ตารางที่มีการเปลี่ยน</h2><div id="hl2" class="note">ยังไม่มีการเปลี่ยนแปลงตาราง</div></div>
+</div>
 <div id="pg-hist" hidden>
+<div class="card"><h2>สถิติการเข้าชม</h2><div id="vs" class="note">ยังไม่ได้โหลด</div></div>
 <div class="card"><h2>คาบปกติที่ยกเลิก</h2><div id="cn" class="note">ยังไม่มี</div></div>
 <div class="card"><h2>นัดชดเชยที่จองไว้</h2><div id="bk" class="note">ยังไม่มี</div>
 <div class="row" style="margin-top:10px"><button id="csv">แสดงเป็น CSV (คัดลอกได้)</button><button id="clr">ล้างทั้งหมด</button></div>
@@ -104,39 +119,40 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 </div>
 </main>
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbwdEEnMMDo5XWXQhiA0NNCQkKZto8sEajGVBsA0LcfVPaoff8YXiuEBY_0M2_ZHkkEw/exec';// วางที่อยู่ Web App ของ Apps Script ที่นี่ (ดู README)
+const API_URL='https://script.google.com/macros/s/AKfycbx8xZf4AnnNoZfkw2OnPSgqzwyt5kNQF7mCrdPgygEvj_Pgn3nRtN7GJMEzBTOB25wn/exec';// วางที่อยู่ Web App ของ Apps Script ที่นี่ (ดู README)
 const $=i=>document.getElementById(i),DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],TH=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 let secs=[],raw=[],booked=[],cancelled=[],DB={terms:[],cur:null},CFG={url:API_URL,code:'',who:''},ME={admin:false,ok:false},SV=null,BV=null,TOK=null,want=null,IMP=[];
 try{DB.cur=localStorage.getItem('mkcur');CFG.code=localStorage.getItem('mkcode')||'';CFG.who=localStorage.getItem('mkwho')||'';if(!CFG.url)CFG.url=localStorage.getItem('mkurl')||'';TOK=sessionStorage.getItem('mktok')}catch(e){}
 const T=()=>DB.terms.find(t=>t.id===DB.cur);
-function loadTerm(){secs=raw.map(s=>({...s,ids:new Set(String(s.ids).split(',').filter(Boolean))}));booked=allB;cancelled=allC}
-let allB=[],allC=[],mt=0;function say(m){$('msg').textContent=m;clearTimeout(mt);if(m)mt=setTimeout(()=>say(''),8000)}
+function loadTerm(){secs=raw.map(s=>({...s,ids:new Set(String(s.ids).split(',').filter(Boolean))}));booked=allB;cancelled=allC;chMap={};allH.forEach(c=>{(chMap[c.key]=chMap[c.key]||[]).push(c)});for(const k in chMap)chMap[k].sort((a,b)=>a.from<b.from?-1:1)}
+let allB=[],allC=[],allH=[],chMap={},mt=0,KEEP=false;function say(m,keep){$('msg').textContent=m;clearTimeout(mt);KEEP=!!(m&&keep);if(m&&!keep)mt=setTimeout(()=>say(''),8000)}
 const ERR={bad_code:'รหัสเข้าใช้ไม่ถูกต้อง',not_configured:'ผู้ดูแลยังตั้งค่าระบบหลังบ้านไม่ครบ',locked:'ใส่รหัสผิดหลายครั้ง ระบบล็อกชั่วคราว ลองใหม่ใน 5 นาที',not_admin:'ต้องเข้าสู่ระบบผู้ดูแลก่อน',bad_login:'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง',bad_input:'ข้อมูลที่ส่งไปไม่ถูกต้อง',out_of_term:'วันที่นี้อยู่นอกช่วงเทอม',busy:'ระบบกำลังบันทึกข้อมูลของคนอื่น โปรดลองใหม่',server:'ระบบหลังบ้านขัดข้อง'};
 async function call(action,body){if(!CFG.url||!CFG.code){say('กรอกการเชื่อมต่อก่อน');return null}
 const ac=new AbortController(),tid=setTimeout(()=>ac.abort(),30000);
 try{const r=await fetch(CFG.url,{method:'POST',signal:ac.signal,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,code:CFG.code,token:TOK,...body})});
-const j=await r.json();if(j.ok)return j;
-say(ERR[j.error]||ERR.server);if(j.error==='not_admin'){TOK=null;ME.admin=false;gate()}if(j.error==='bad_code'||j.error==='not_configured')ME.ok=false;return null}
-catch(e){say(e&&e.name==='AbortError'?'ระบบหลังบ้านตอบช้าเกินไป ลองใหม่อีกครั้ง':'เชื่อมต่อระบบหลังบ้านไม่ได้ ตรวจสอบอินเทอร์เน็ตและที่อยู่ระบบ');return null}finally{clearTimeout(tid)}}
+const j=await r.json();if(j.ok){if(KEEP)say('');return j}
+say(ERR[j.error]||ERR.server,true);if(j.error==='not_admin'){TOK=null;ME.admin=false;gate()}if(j.error==='bad_code'||j.error==='not_configured')ME.ok=false;return null}
+catch(e){say(e&&e.name==='AbortError'?'ระบบหลังบ้านตอบช้าเกินไป ลองใหม่อีกครั้ง':'เชื่อมต่อระบบหลังบ้านไม่ได้ ตรวจสอบอินเทอร์เน็ตและที่อยู่ระบบ (ลองเปิดที่อยู่ระบบในแท็บใหม่ ต้องเห็นคำว่า OK)',true);return null}finally{clearTimeout(tid)}}
 let polling=false;
 async function poll(){if(polling||!CFG.url||!CFG.code)return;polling=true;const req=DB.cur;if(!ME.ok)$('sync').textContent='กำลังเชื่อมต่อ...';
 const j=await call('state',{term:req,sv:SV,bv:BV});polling=false;if(!j){if(!ME.ok)$('sync').textContent='';return}
 const first=!ME.ok,adm=ME.admin!==j.admin;ME.ok=true;ME.admin=j.admin;if(!j.admin&&TOK){TOK=null;try{sessionStorage.removeItem('mktok')}catch(e){}}
 if(j.terms){DB.terms=j.terms.sort((a,b)=>a.name<b.name?-1:1);if(want&&DB.terms.some(x=>x.id===want)){DB.cur=want;want=null}else if(!T())DB.cur=DB.terms[0]?DB.terms[0].id:null}
-if(DB.cur!==req){raw=[];allB=[];allC=[];SV=BV=null;loadTerm();refresh();draw();setTimeout(poll,0);return}
-const ch=!!(j.terms||j.sections||j.bookings||j.cancels);
-if(j.sections)raw=j.sections;if(j.bookings)allB=j.bookings;if(j.cancels)allC=j.cancels;SV=j.sv;BV=j.bv;
+if(DB.cur!==req){raw=[];allB=[];allC=[];allH=[];SV=BV=null;loadTerm();refresh();draw();setTimeout(poll,0);return}
+const ch=!!(j.terms||j.sections||j.bookings||j.cancels||j.changes);
+if(j.sections)raw=j.sections;if(j.bookings)allB=j.bookings;if(j.cancels)allC=j.cancels;if(j.changes)allH=j.changes;SV=j.sv;BV=j.bv;
 $('sync').textContent='ซิงก์ล่าสุด '+new Date().toLocaleTimeString('en-GB');
 if(first)$('cfgd').open=false;
+if(first){let seen=false;try{seen=sessionStorage.getItem('mkvis')==='1';sessionStorage.setItem('mkvis','1')}catch(e){}if(!seen)call('visit',{by:CFG.who||'ไม่ระบุชื่อ'})}
 if(ch||first||adm){loadTerm();refresh();draw()}
 if(ch&&!$('pg-hist').hidden)loadHist()}
 async function mut(act,payload){const j=await call(act,{term:DB.cur,by:CFG.who||'ไม่ระบุชื่อ',...payload});if(!j)return;
-if(j.bookings)allB=j.bookings;if(j.cancels)allC=j.cancels;if(j.bv)BV=j.bv;loadTerm();draw();renderWeek();if(!$('pg-hist').hidden)loadHist()}
+if(j.bookings)allB=j.bookings;if(j.cancels)allC=j.cancels;if(j.changes)allH=j.changes;if(j.bv)BV=j.bv;loadTerm();draw();renderWeek();if(!$('pg-hist').hidden)loadHist()}
 const tm=t=>{const[h,m]=t.replace('.',':').split(':').map(Number);return h*60+m},fm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
 const key=s=>s.code+'-'+s.sec,esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const pd=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
-$('days').innerHTML=[1,2,3,4,5,6,0].map(i=>`<label><input type="checkbox" value="${i}" ${i>0&&i<6?'checked':''}>${TH[i].slice(0,3)}.</label>`).join('');
+$('days').innerHTML=[1,2,3,4,5,6,0].map(i=>`<label><input type="checkbox" value="${i}" checked>${TH[i].slice(0,3)}.</label>`).join('');
 const today=new Date(),end=new Date(today.getTime()+45*864e5);$('d1').value=iso(today);$('d2').value=iso(end);
 function parse(rows,name){const m0=name.match(/^([A-Za-z]{2}\d{3})/),code=m0?m0[1].toUpperCase():name;let cur=null,title='',out=[];
 for(const r of rows){const line=r.filter(x=>x!=='').join(' ').replace(/\[merged\]/g,'').trim();
@@ -164,8 +180,8 @@ if(j){SV=null;await poll();say(bad?`อ่านไฟล์ไม่ได้ $
 function refresh(){clampWk();syncRange();const t=T(),st=new Set(),v=$('sec').value;secs.forEach(s=>s.ids.forEach(i=>st.add(i)));
 $('tsel').innerHTML=DB.terms.map(x=>`<option value="${esc(x.id)}" ${x.id===DB.cur?'selected':''}>${esc(x.name)}</option>`).join('')||'<option value="">ยังไม่มีเทอม</option>';
 $('st').textContent=t?`เทอม ${t.name}: ${secs.length} กลุ่มเรียน นักศึกษา ${st.size} คน`:!ME.ok?'กรอกการเชื่อมต่อด้านบนแล้วกดเชื่อมต่อ':ME.admin?'สร้างเทอมก่อน แล้วจึงอัปโหลดรายชื่อ':'ยังไม่มีข้อมูล รอผู้ดูแลระบบนำเข้าข้อมูล';
-$('sec').innerHTML=secs.map(s=>`<option value="${esc(key(s))}">${esc(key(s))} · ${TH[s.day]} ${fm(s.s)}-${fm(s.e)} (${s.ids.size} คน)</option>`).join('');if(secs.some(s=>key(s)===v))$('sec').value=v;
-$('ctl').textContent=t?'เทอมที่ใช้: '+t.name:'';gate();renderWeek()}
+$('sec').innerHTML=secs.map(s=>`<option value="${esc(key(s))}">${esc(key(s))} · ${effNow(s)} (${s.ids.size} คน)</option>`).join('');if(secs.some(s=>key(s)===v))$('sec').value=v;
+$('ctl').textContent=t?'เทอมที่ใช้: '+t.name:'';renderSch();gate();renderWeek()}
 function gate(){$('adm').hidden=!ME.admin;$('clr').hidden=!ME.admin;$('lin').hidden=ME.admin;$('lout').hidden=!ME.admin;$('urlrow').hidden=!!API_URL;
 $('role').textContent=!CFG.url?'ยังไม่ได้ตั้งค่าที่อยู่ระบบหลังบ้าน':!ME.ok?'ยังไม่ได้เชื่อมต่อ':ME.admin?'สถานะ: ผู้ดูแลระบบ แก้ไขเทอมและนำเข้าข้อมูลได้':'สถานะ: ผู้ใช้ทั่วไป เพิ่มและยกเลิกวันเรียนได้'}
 function pick(){renderWeek()}
@@ -175,14 +191,17 @@ $('file').onchange=e=>load([...e.target.files]);
 dz.ondragover=e=>{e.preventDefault();dz.classList.add('on')};dz.ondragleave=()=>dz.classList.remove('on');
 dz.ondrop=e=>{e.preventDefault();dz.classList.remove('on');load([...e.dataTransfer.files])};
 function busy(date){const d=date.getDay(),k=iso(date),L=[];
-for(const s of secs)if(s.day===d&&!cancelled.some(c=>c.key===key(s)&&c.date===k))L.push({n:key(s),s:s.s,e:s.e,ids:s.ids});
+for(const s of secs){const f=eff(s,k);if(f.day===d&&!cancelled.some(c=>c.key===key(s)&&c.date===k))L.push({n:key(s),s:f.s,e:f.e,ids:s.ids})}
 for(const b of booked)if(b.date===k){const s=secs.find(x=>key(x)===b.key);if(s)L.push({n:'ชดเชย '+b.key,s:b.s,e:b.e,ids:s.ids})}return L}
-const DU=180,PS=[540,780,960,1020],home=c=>PS.reduce((a,b)=>Math.abs(b-c.s)<Math.abs(a-c.s)?b:a);
-$('pers').innerHTML=PS.map(p=>`<label><input type="checkbox" value="${p}" checked>${fm(p)}</label>`).join('');
-const dayList=()=>[...document.querySelectorAll('#days input:checked')].map(i=>+i.value),periods=()=>[...document.querySelectorAll('#pers input:checked')].map(i=>+i.value),hols=()=>new Set($('hol').value.split(/\s+/).filter(Boolean));
+const PS=[{s:540,e:720},{s:780,e:960},{s:960,e:1200}];// ช่วงเย็น 16:00-20:00 รวมคาบ 16:00 และ 17:00 (แก้เวลาที่นี่ได้)
+const perOf=(s,e)=>{let bi=0,bo=-1,bd=1e9;PS.forEach((P,i)=>{const o=Math.min(e,P.e)-Math.max(s,P.s),d=Math.abs(s-P.s);if(o>bo||(o===bo&&d<bd)){bi=i;bo=o;bd=d}});return bi};
+const eff=(s,k)=>{const L=chMap[key(s)];let c=null;if(L)for(const x of L){if(x.from<=k)c=x;else break}return c?{day:c.day,s:c.s,e:c.e}:{day:s.day,s:s.s,e:s.e}};
+const effNow=s=>{const f=eff(s,iso(new Date()));return TH[f.day]+' '+fm(f.s)+'-'+fm(f.e)};
+$('pers').innerHTML=PS.map((p,i)=>`<label><input type="checkbox" value="${i}" checked>${fm(p.s)}-${fm(p.e)}</label>`).join('');
+const dayList=()=>[...document.querySelectorAll('#days input:checked')].map(i=>+i.value),periods=()=>[...document.querySelectorAll('#pers input:checked')].map(i=>PS[+i.value]),hols=()=>new Set($('hol').value.split(/\s+/).filter(Boolean));
 const nd=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n),dm=k=>k.split('-').reverse().join('/');
 function ev(d,s,e,cs){const hit=[],u=new Set();
-for(const b of busy(d)){if(b.s>=e||b.e<=s)continue;if(b.n==='ชดเชย '+key(cs)&&b.s===s)continue;const c=[...cs.ids].filter(i=>b.ids.has(i));if(c.length){hit.push([b.n,c.length]);c.forEach(i=>u.add(i))}}
+for(const b of busy(d)){if(b.s>=e||b.e<=s)continue;if(b.n==='ชดเชย '+key(cs)&&perOf(b.s,b.e)===perOf(s,e))continue;const c=[...cs.ids].filter(i=>b.ids.has(i));if(c.length){hit.push([b.n,c.length]);c.forEach(i=>u.add(i))}}
 return{n:u.size,hit}}
 let wk=nd(new Date(),0);wk=nd(wk,-((wk.getDay()+6)%7));
 const rng=()=>{const t=T();return t&&t.start&&t.end?[t.start,t.end]:null},inTerm=k=>{const r=rng();return !r||(k>=r[0]&&k<=r[1])};
@@ -198,46 +217,67 @@ if(!cs){el.innerHTML='<div class="note">โหลดรายชื่อนั�
 const hol=hols(),dl=dayList(),D=[0,1,2,3,4,5,6].map(i=>nd(wk,i)).filter(d=>dl.includes(d.getDay())&&inTerm(iso(d)));
 if(!D.length&&rng()){el.innerHTML='<div class="note">สัปดาห์นี้อยู่นอกช่วงเทอม</div>';return}
 let h='<table class="wg"><tr><th></th>'+D.map(d=>`<th>${TH[d.getDay()]}<br><span class="dt">${dm(iso(d)).slice(0,5)}</span></th>`).join('')+'</tr>';
-for(const s of periods()){h+=`<tr><th>${fm(s)}-${fm(s+DU)}</th>`;
+for(const P of periods()){const idx=PS.indexOf(P);h+=`<tr><th>${fm(P.s)}-${fm(P.e)}</th>`;
 for(const d of D){const k=iso(d);if(hol.has(k)){h+='<td class="hd">วันหยุด</td>';continue}
-const own=cs.day===d.getDay()&&s===home(cs);
-if(own){const cn=cancelled.some(c=>c.key===key(cs)&&c.date===k);
-h+=cn?`<td tabindex="0" class="c-canc" data-k="${k}" data-s="${s}" data-reg="1"><b>ยกเลิกแล้ว · คลิกเพื่อคืนคาบ</b></td>`:`<td tabindex="0" class="c-reg" data-k="${k}" data-s="${s}" data-reg="1"><b>คาบเรียนปกติ</b>${cs.s!==s?`<small>${fm(cs.s)}-${fm(cs.e)}</small>`:''}<small>คลิกเพื่อยกเลิกคาบนี้</small></td>`;continue}
-const r=ev(d,s,s+DU,cs),bo=booked.find(b=>b.key===key(cs)&&b.date===k&&b.s===s);
-h+=bo?`<td tabindex="0" class="c-bk" data-k="${k}" data-s="${s}"><b>จองแล้ว</b>${r.n?`<small>ชน ${r.n} คน</small>`:''}<small class="bkd">คลิกเพื่อยกเลิก${bo.by?' · '+esc(bo.by):''}</small></td>`:
-`<td tabindex="0" class="${r.n?'c-wn':'c-ok'}" data-k="${k}" data-s="${s}"><b>${r.n?'ชน '+r.n+' คน':'ไม่ชน'}</b>`+r.hit.slice(0,4).map(x=>`<small>${esc(x[0])} · ${x[1]}</small>`).join('')+(r.hit.length>4?`<small>และอีก ${r.hit.length-4} กลุ่ม</small>`:'')+'</td>'}
+const f=eff(cs,k);
+if(f.day===d.getDay()&&perOf(f.s,f.e)===idx){const cn=cancelled.some(c=>c.key===key(cs)&&c.date===k);
+h+=cn?`<td tabindex="0" class="c-canc" data-k="${k}" data-p="${idx}" data-reg="1"><b>ยกเลิกแล้ว · คลิกเพื่อคืนคาบ</b></td>`:`<td tabindex="0" class="c-reg" data-k="${k}" data-p="${idx}" data-reg="1"><b>คาบเรียนปกติ</b>${(f.s!==P.s||f.e!==P.e)?`<small>${fm(f.s)}-${fm(f.e)}</small>`:''}<small>คลิกเพื่อยกเลิกคาบนี้</small></td>`;continue}
+const r=ev(d,P.s,P.e,cs),bo=booked.find(b=>b.key===key(cs)&&b.date===k&&perOf(b.s,b.e)===idx);
+h+=bo?`<td tabindex="0" class="c-bk" data-k="${k}" data-p="${idx}"><b>จองแล้ว</b>${r.n?`<small>ชน ${r.n} คน</small>`:''}<small class="bkd">คลิกเพื่อยกเลิก${bo.by?' · '+esc(bo.by):''}</small></td>`:
+`<td tabindex="0" class="${r.n?'c-wn':'c-ok'}" data-k="${k}" data-p="${idx}"><b>${r.n?'ชน '+r.n+' คน':'ไม่ชน'}</b>`+r.hit.slice(0,4).map(x=>`<small>${esc(x[0])} · ${x[1]}</small>`).join('')+(r.hit.length>4?`<small>และอีก ${r.hit.length-4} กลุ่ม</small>`:'')+'</td>'}
 h+='</tr>'}
 el.innerHTML=h+'</table>'}
 function bookCell(e){const t=e.target.closest('td[data-k]'),cs=secs.find(x=>key(x)===$('sec').value);if(!t||!cs)return;
-const s=+t.dataset.s,k=t.dataset.k,K=key(cs);
-if(t.dataset.reg){mut(cancelled.some(c=>c.key===K&&c.date===k)?'uncancel':'cancel',{key:K,date:k,s:cs.s,e:cs.e});return}
-mut(booked.some(b=>b.key===K&&b.date===k&&b.s===s)?'unbook':'book',{key:K,date:k,s,e:s+DU})}
+const k=t.dataset.k,K=key(cs),idx=+t.dataset.p,P=PS[idx];
+if(t.dataset.reg){const f=eff(cs,k);mut(cancelled.some(c=>c.key===K&&c.date===k)?'uncancel':'cancel',{key:K,date:k,s:f.s,e:f.e});return}
+const ex=booked.find(b=>b.key===K&&b.date===k&&perOf(b.s,b.e)===idx);
+mut(ex?'unbook':'book',ex?{key:K,date:k,s:ex.s}:{key:K,date:k,s:P.s,e:P.e})}
 $('wk').onclick=bookCell;$('wk').onkeydown=e=>{if(e.key==='Enter')bookCell(e)};
 $('pw').onclick=()=>{const n=nd(wk,-7);if(weekOK(n)){wk=n;renderWeek()}};$('nw').onclick=()=>{const n=nd(wk,7);if(weekOK(n)){wk=n;renderWeek()}};
 document.addEventListener('change',renderWeek);
-const PGS=['main','hist'];
-function showPg(p){PGS.forEach(x=>{$('pg-'+x).hidden=x!==p;$('tb-'+x).setAttribute('aria-selected',String(x===p))});if(p==='hist')loadHist()}
+const PGS=['main','sch','hist'];
+function showPg(p){PGS.forEach(x=>{$('pg-'+x).hidden=x!==p;$('tb-'+x).setAttribute('aria-selected',String(x===p))});if(p==='hist'){loadHist();loadStats()}if(p==='sch'){if(secs.some(s=>key(s)===$('sec').value))$('hsec').value=$('sec').value;renderSch();fillForm()}}
 PGS.forEach(x=>$('tb-'+x).onclick=()=>showPg(x));
-const ACT={book:'จองคาบชดเชย',unbook:'ยกเลิกการจอง',cancel:'ยกเลิกคาบเรียนปกติ',uncancel:'คืนคาบเรียนปกติ'};
+const ACT={book:'จองคาบชดเชย',unbook:'ยกเลิกการจอง',cancel:'ยกเลิกคาบเรียนปกติ',uncancel:'คืนคาบเรียนปกติ',setChange:'เปลี่ยนวันเรียนปกติ',delChange:'ลบการเปลี่ยนวันเรียน'};
 async function loadHist(){if(!DB.cur)return;const j=await call('history',{term:DB.cur});if(!j)return;
-$('hl').innerHTML=j.rows.length?'<table class="mx hx" style="width:100%"><tr><th>เวลาที่ทำ</th><th>ผู้ทำรายการ</th><th>การกระทำ</th><th>กลุ่มเรียน</th><th>วันที่เรียน</th><th>คาบเวลา</th></tr>'+j.rows.map(r=>`<tr><td>${esc(new Date(r.ts).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}))}</td><td>${esc(r.by)}</td><td>${ACT[r.action]||esc(r.action)}</td><td>${esc(r.key)}</td><td>${r.date?dm(r.date):''}</td><td>${r.s==null?'':fm(r.s)+(r.e?'-'+fm(r.e):'')}</td></tr>`).join('')+'</table>':'<div class="note">ยังไม่มีประวัติ</div>'}
-$('hrf').onclick=loadHist;
+$('hl').innerHTML=j.rows.length?'<table class="mx hx" style="width:100%"><tr><th>เวลาที่ทำ</th><th>ผู้ทำรายการ</th><th>การกระทำ</th><th>กลุ่มเรียน</th><th>วันที่เรียน</th><th>คาบเวลา</th></tr>'+j.rows.map(r=>`<tr><td>${esc(new Date(r.ts).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}))}</td><td>${esc(r.by)}</td><td>${ACT[r.action]||esc(r.action)}</td><td>${esc(r.key)}</td><td>${r.date?dm(r.date):''}</td><td>${r.s==null?'':(r.d!=null?TH[r.d]+' ':'')+fm(r.s)+(r.e?'-'+fm(r.e):'')}</td></tr>`).join('')+'</table>':'<div class="note">ยังไม่มีประวัติ</div>'}
+$('hrf').onclick=()=>{loadHist();loadStats()};
+async function loadStats(){const j=await call('stats',{});if(!j)return;$('vs').className='';
+$('vs').innerHTML=`<div class="stat"><div><b>${j.total}</b><span>เข้าชมทั้งหมด</span></div><div><b>${j.today}</b><span>วันนี้</span></div><div><b>${j.week}</b><span>7 วันล่าสุด</span></div><div><b>${j.unique}</b><span>ผู้เข้าชม (นับตามชื่อ)</span></div></div>`+
+(j.by?`<details style="margin-top:8px"><summary>ผู้เข้าชมตามชื่อ</summary>${j.by.map(x=>`<div class="bk"><span>${esc(x.name)}</span><span>${x.count} ครั้ง</span></div>`).join('')}</details>`:'')}
+$('hday').innerHTML=[1,2,3,4,5,6,0].map(i=>`<option value="${i}">${TH[i]}</option>`).join('');
+function renderSch(){const sel=$('hsec'),v=sel.value;
+sel.innerHTML=secs.map(s=>`<option value="${esc(key(s))}">${esc(key(s))}</option>`).join('');if(secs.some(s=>key(s)===v))sel.value=v;
+$('hform').hidden=!ME.admin;$('hnote').hidden=!!ME.admin;
+const s=secs.find(x=>key(x)===sel.value),L=s?(chMap[key(s)]||[]):[];
+$('hcur').innerHTML=s?`<div>ตารางเดิม: ${TH[s.day]} ${fm(s.s)}-${fm(s.e)}</div>`+L.map(c=>`<div>ตั้งแต่ ${dm(c.from)}: ${TH[c.day]} ${fm(c.s)}-${fm(c.e)}</div>`).join(''):'';
+const all=[...allH].sort((a,b)=>a.key<b.key?-1:a.key>b.key?1:a.from<b.from?-1:1);
+$('hl2').className=all.length?'':'note';
+$('hl2').innerHTML=all.length?all.map(c=>`<div class="bk"><span><b>${esc(c.key)}</b> ตั้งแต่ ${dm(c.from)}: ${TH[c.day]} ${fm(c.s)}-${fm(c.e)}${c.by?' · '+esc(c.by):''}</span>${ME.admin?`<button data-x="${esc(c.id)}">ลบ</button>`:''}</div>`).join(''):'ยังไม่มีการเปลี่ยนแปลงตาราง';
+$('hl2').querySelectorAll('button[data-x]').forEach(b=>b.onclick=async()=>{if(await call('delChange',{term:DB.cur,cid:b.dataset.x,by:CFG.who||'admin'})){BV=null;poll()}})}
+function fillForm(){const s=secs.find(x=>key(x)===$('hsec').value);if(!s)return;const k=iso(new Date()),r=rng(),f=eff(s,'9999-12-31');
+$('hday').value=f.day;$('hs').value=fm(f.s);$('he').value=fm(f.e);$('hfrom').value=(r&&k<r[0])?r[0]:(r&&k>r[1]?r[1]:k)}
+$('hsec').onchange=()=>{renderSch();fillForm()};
+$('hsave').onclick=async()=>{if(!ME.admin)return;const K=$('hsec').value,from=$('hfrom').value,a=$('hs').value,b=$('he').value;
+if(!K||!from||!a||!b||tm(a)>=tm(b)){say('กรอกวันที่และเวลาให้ครบ (เวลาเลิกต้องมากกว่าเวลาเริ่ม)');return}
+if(!inTerm(from)){say('วันที่นี้อยู่นอกช่วงเทอม');return}
+if(await call('setChange',{term:DB.cur,key:K,from,day:+$('hday').value,s:tm(a),e:tm(b),by:CFG.who||'admin'})){BV=null;await poll();say('บันทึกตารางเรียนใหม่แล้ว')}};
 
 $('go').onclick=()=>{const cs=secs.find(x=>key(x)===$('sec').value);if(!cs){$('out').textContent='โหลดรายชื่อนักศึกษาก่อน';return}
 const mx=+$('mx').value||0,ok=dayList(),hol=hols(),res=[];
 for(let d=pd($('d1').value);d<=pd($('d2').value);d=nd(d,1)){
 if(!ok.includes(d.getDay())||hol.has(iso(d))||!inTerm(iso(d)))continue;
-for(const s of periods()){if(d.getDay()===cs.day&&s===home(cs)&&cancelled.some(c=>c.key===key(cs)&&c.date===iso(d)))continue;const r=ev(d,s,s+DU,cs);if(r.n<=mx)res.push({date:iso(d),wd:d.getDay(),s,e:s+DU,n:r.n,hit:r.hit})}}
+for(const P of periods()){const idx=PS.indexOf(P),f=eff(cs,iso(d));if(f.day===d.getDay()&&perOf(f.s,f.e)===idx&&cancelled.some(c=>c.key===key(cs)&&c.date===iso(d)))continue;const r=ev(d,P.s,P.e,cs);if(r.n<=mx)res.push({date:iso(d),wd:d.getDay(),s:P.s,e:P.e,p:idx,n:r.n,hit:r.hit})}}
 res.sort((a,b)=>a.n-b.n||(a.date<b.date?-1:a.date>b.date?1:a.s-b.s));
 if(!res.length){$('out').textContent='ไม่พบช่วงเวลาที่เข้าเงื่อนไข ลองขยายช่วงวันที่ เพิ่มวันเรียน หรือยอมให้ชนได้บางส่วน';return}
 {const f=pd(res[0].date);wk=nd(f,-((f.getDay()+6)%7));renderWeek()}
 const z=res.filter(r=>!r.n).length;
 $('out').className='';$('out').innerHTML=`<div class="note" style="margin:0 0 10px">พบ ${res.length} ช่วงเวลา (ไม่ชนเลย ${z}) แสดง 120 รายการแรก</div>`+res.slice(0,120).map((r,i)=>
 `<div class="res"><span><b>${TH[r.wd]} ${r.date.split('-').reverse().join('/')}</b> ${fm(r.s)}-${fm(r.e)}</span>
-<span><span class="tag ${r.n?'wn':'ok'}">${r.n?'ชน '+r.n+' คน':'ไม่ชน'}</span> <button data-i="${i}">${booked.some(x=>x.key===key(cs)&&x.date===r.date&&x.s===r.s)?'ยกเลิกจอง':'จอง'}</button></span>
+<span><span class="tag ${r.n?'wn':'ok'}">${r.n?'ชน '+r.n+' คน':'ไม่ชน'}</span> <button data-i="${i}">${booked.some(x=>x.key===key(cs)&&x.date===r.date&&perOf(x.s,x.e)===r.p)?'ยกเลิกจอง':'จอง'}</button></span>
 ${r.n?`<details><summary>ดูรายละเอียด</summary>${r.hit.map(h=>esc(h[0])+' : '+h[1]+' คน').join('<br>')}</details>`:''}</div>`).join('');
-$('out').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{const r=res[+b.dataset.i],K=key(cs),has=()=>booked.some(x=>x.key===K&&x.date===r.date&&x.s===r.s);
-mut(has()?'unbook':'book',{key:K,date:r.date,s:r.s,e:r.e}).then(()=>{b.textContent=has()?'ยกเลิกจอง':'จอง'})})};
+$('out').querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{const r=res[+b.dataset.i],K=key(cs),ex=()=>booked.find(x=>x.key===K&&x.date===r.date&&perOf(x.s,x.e)===r.p),e0=ex();
+mut(e0?'unbook':'book',e0?{key:K,date:r.date,s:e0.s}:{key:K,date:r.date,s:r.s,e:r.e}).then(()=>{b.textContent=ex()?'ยกเลิกจอง':'จอง'})})};
 function drawC(){const L=cancelled;$('cn').className=L.length?'':'note';
 $('cn').innerHTML=L.length?L.map((c,i)=>`<div class="bk"><span><b>${esc(c.key)}</b> ${dm(c.date)} ${fm(c.s)}-${fm(c.e)}${c.by?' · '+esc(c.by):''}</span><button data-c="${i}">คืนคาบ</button></div>`).join(''):'ยังไม่มี';
 $('cn').querySelectorAll('button[data-c]').forEach(x=>x.onclick=()=>{const c=cancelled[+x.dataset.c];mut('uncancel',{key:c.key,date:c.date})})}
@@ -246,7 +286,7 @@ $('bk').querySelectorAll('button[data-r]').forEach(x=>x.onclick=()=>{const b=boo
 $('clr').onclick=async()=>{if(!ME.admin)return;if(await call('clearBookings',{term:DB.cur})){BV=null;poll()}};
 $('csv').onclick=()=>{const t=(LG==='en'?'Section,Date,Start,End':'กลุ่มเรียน,วันที่,เริ่ม,เลิก')+'\n'+booked.map(b=>[b.key,b.date,fm(b.s),fm(b.e)].join(',')).join('\n');
 let x=$('cx');if(!x){x=document.createElement('textarea');x.id='cx';x.rows=6;x.readOnly=true;x.style.marginTop='10px';$('csv').parentNode.after(x)}x.value=t;x.select()};
-function setTerm(id){DB.cur=id;try{localStorage.setItem('mkcur',id)}catch(e){}raw=[];allB=[];allC=[];SV=BV=null;loadTerm();refresh();draw();$('out').className='note';$('out').textContent='เลือกกลุ่มเรียนและกดค้นหา';poll()}
+function setTerm(id){DB.cur=id;try{localStorage.setItem('mkcur',id)}catch(e){}raw=[];allB=[];allC=[];allH=[];SV=BV=null;loadTerm();refresh();draw();$('out').className='note';$('out').textContent='เลือกกลุ่มเรียนและกดค้นหา';poll()}
 let dq=false;const rstDel=()=>{dq=false;$('tdel').textContent='ลบเทอมนี้'};
 $('tsel').onchange=()=>{rstDel();setTerm($('tsel').value)};
 $('tnew').onclick=async()=>{const n=$('tname').value.trim(),a=$('tstart').value,b=$('tend').value;if(!ME.admin||!n)return;
@@ -262,15 +302,15 @@ const EN={'ระบบหาวันเรียนชดเชย':'Makeup Cl
 '1. เลือกเทอม':'1. Choose a term','สร้างเทอม':'Create term','ลบเทอมนี้':'Delete this term','กดอีกครั้งเพื่อลบเทอมนี้':'Click again to delete this term','ยังไม่มีเทอม':'No terms yet','สำรอง / นำเข้าข้อมูล':'Backup / import data','สร้างข้อความสำรอง':'Create backup text','นำเข้าจากข้อความ':'Import from text',
 'ข้อมูลเก็บในเบราว์เซอร์เครื่องนี้ ถ้าล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่องข้อมูลจะหาย ข้อความสำรองมีรหัสนักศึกษาอยู่ด้วย ควรเก็บไว้ในที่ปลอดภัย':'Data is stored in this browser. Clearing browser data or switching devices will erase it. The backup text contains student IDs, so keep it somewhere safe.',
 '2. อัปโหลดรายชื่อเข้าเทอมนี้':'2. Upload class lists to this term','ลากไฟล์ .xlsx หรือ .zip ของทั้งโฟลเดอร์มาวางที่นี่':'Drop .xlsx files or a .zip of the whole folder here','หรือคลิกเพื่อเลือกไฟล์':'or click to choose files','กำลังอ่านไฟล์...':'Reading files...','สร้างเทอมก่อน แล้วจึงอัปโหลดรายชื่อ':'Create a term first, then upload class lists',
-'2. ตั้งค่าการค้นหา':'2. Search settings','กลุ่มเรียนที่งดสอน':'Cancelled section','วันที่งดสอน (ถ้าระบุ วันนั้นจะไม่นับเป็นคาบปกติ)':'Cancelled date (if set, that day is not counted as a regular class)','ค้นหาตั้งแต่วันที่':'Search from','ถึงวันที่':'To','วันที่เรียนชดเชยได้':'Days available for makeup','เวลาเริ่มคาบ (คาบละ 3 ชั่วโมง)':'Period start times (3 hours each)','ยอมให้ชนได้สูงสุด (คน)':'Max conflicts allowed (students)','วันหยุด (บรรทัดละ 1 วัน รูปแบบ 2026-10-13)':'Holidays (one date per line, e.g. 2026-10-13)','ค้นหาวันเรียนชดเชย':'Find makeup dates',
+'2. ตั้งค่าการค้นหา':'2. Search settings','กลุ่มเรียนที่งดสอน':'Cancelled section','วันที่งดสอน (ถ้าระบุ วันนั้นจะไม่นับเป็นคาบปกติ)':'Cancelled date (if set, that day is not counted as a regular class)','ค้นหาตั้งแต่วันที่':'Search from','ถึงวันที่':'To','วันที่เรียนชดเชยได้':'Days available for makeup','ช่วงเวลา (ช่วงเย็นรวมคาบที่เริ่ม 16:00 และ 17:00)':'Periods (the evening block merges classes that start at 16:00 and 17:00)','ยอมให้ชนได้สูงสุด (คน)':'Max conflicts allowed (students)','วันหยุด (บรรทัดละ 1 วัน รูปแบบ 2026-10-13)':'Holidays (one date per line, e.g. 2026-10-13)','ค้นหาวันเรียนชดเชย':'Find makeup dates',
 'ตารางรายสัปดาห์':'Weekly schedule','สัปดาห์ก่อน':'Previous week','สัปดาห์ถัดไป':'Next week','สีฟ้า = คาบเรียนปกติของกลุ่มที่เลือก (คลิกเพื่อยกเลิกคาบนั้น) สีเขียว = นักศึกษาว่างทุกคน สีส้ม = มีคนติดเรียนกลุ่มอื่น สีชมพู = จองชดเชยไว้แล้ว (คลิกเพื่อยกเลิกการจอง) คลิกช่องเขียวหรือส้มเพื่อจองเป็นวันชดเชย':'Blue = regular class of the selected section (click to cancel it). Green = all students free. Orange = some students have another class. Pink = makeup already booked (click to cancel the booking). Click a green or orange cell to book a makeup.',
 'ผลการค้นหา':'Results','เลือกกลุ่มเรียนและกดค้นหา':'Choose a section and press search','โหลดรายชื่อนักศึกษาก่อน':'Load student lists first','ไม่พบช่วงเวลาที่เข้าเงื่อนไข ลองขยายช่วงวันที่ เพิ่มวันเรียน หรือยอมให้ชนได้บางส่วน':'No matching slots. Try a wider date range, more days, or allow a few conflicts.',
-'ดูรายละเอียด':'Details','จองแล้ว · คลิกเพื่อยกเลิก':'Booked · click to cancel','ยกเลิกจอง':'Cancel booking','จอง':'Book','งดสอนวันนี้':'Cancelled today','วันหยุด':'Holiday','ไม่ชน':'No conflict','ชดเชย':'Makeup','ตารางและค้นหา':'Schedule & search','ประวัติ':'History','เทอมที่ใช้:':'Current term:','บันทึกการเปลี่ยนแปลง':'Change log','รีเฟรช':'Refresh','ยังไม่ได้โหลด':'Not loaded yet','ยังไม่มีประวัติ':'No history yet','เวลาที่ทำ':'Time','ผู้ทำรายการ':'By','การกระทำ':'Action','กลุ่มเรียน':'Section','วันที่เรียน':'Class date','คาบเวลา':'Period','จองคาบชดเชย':'Booked makeup','ยกเลิกการจอง':'Cancelled booking','ยกเลิกคาบเรียนปกติ':'Cancelled regular class','คืนคาบเรียนปกติ':'Restored regular class','จองแล้ว':'Booked','คลิกเพื่อยกเลิก':'Click to cancel',
-'ระบบหลังบ้านตอบช้าเกินไป ลองใหม่อีกครั้ง':'The backend is responding too slowly, please retry','โหลดตัวอ่านไฟล์ไม่ได้ (เครือข่ายอาจบล็อก cdnjs.cloudflare.com)':'Could not load the file reader (the network may block cdnjs.cloudflare.com)','เกิดข้อผิดพลาดในหน้าเว็บ:':'Page error:','เกิดข้อผิดพลาด:':'Error:','สร้างเทอมใหม่':'Create a new term','เริ่มเทอม':'Term start','สิ้นสุดเทอม':'Term end','แก้ไขวันที่ของเทอมที่เลือก':'Edit dates of the selected term','บันทึกวันที่':'Save dates','ช่วงเทอม':'Term period','ยังไม่ได้ตั้งช่วงวันที่':'Term dates not set','สัปดาห์นี้อยู่นอกช่วงเทอม':'This week is outside the term','กรอกวันที่เริ่มและสิ้นสุดเทอมให้ถูกต้อง':'Enter valid term start and end dates','วันที่นี้อยู่นอกช่วงเทอม':'This date is outside the term','การเชื่อมต่อ':'Connection','ที่อยู่ระบบหลังบ้าน (Web App URL)':'Backend address (Web App URL)','รหัสเข้าใช้ของออฟฟิศ':'Office access code','ชื่อของคุณ (ใช้บันทึกว่าใครเป็นคนจอง)':'Your name (recorded with each booking)','เชื่อมต่อ':'Connect','ชื่อผู้ใช้ผู้ดูแลระบบ':'Admin username','รหัสผ่านผู้ดูแลระบบ':'Admin password','เข้าสู่ระบบผู้ดูแล':'Admin sign in','ออกจากระบบผู้ดูแล':'Admin sign out','ซิงก์ล่าสุด':'Last sync','ยังไม่ได้ตั้งค่าที่อยู่ระบบหลังบ้าน':'Backend address not set','ยังไม่ได้เชื่อมต่อ':'Not connected','กรอกการเชื่อมต่อด้านบนแล้วกดเชื่อมต่อ':'Fill in the connection above and press Connect','กรอกการเชื่อมต่อก่อน':'Fill in the connection first','ไม่พบข้อมูลกลุ่มเรียนในไฟล์':'No sections found in the files','กำลังบันทึกขึ้นระบบ...':'Saving to the system...','รหัสเข้าใช้ไม่ถูกต้อง':'Wrong access code','ผู้ดูแลยังตั้งค่าระบบหลังบ้านไม่ครบ':'The administrator has not finished configuring the backend','ใส่รหัสผิดหลายครั้ง ระบบล็อกชั่วคราว ลองใหม่ใน 5 นาที':'Too many wrong attempts. Locked temporarily, try again in 5 minutes.','ต้องเข้าสู่ระบบผู้ดูแลก่อน':'Admin sign-in required','ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง':'Wrong username or password','ข้อมูลที่ส่งไปไม่ถูกต้อง':'Invalid data sent','ระบบกำลังบันทึกข้อมูลของคนอื่น โปรดลองใหม่':'The system is saving someone else\'s data, please retry','ระบบหลังบ้านขัดข้อง':'Backend error','เชื่อมต่อระบบหลังบ้านไม่ได้ ตรวจสอบอินเทอร์เน็ตและที่อยู่ระบบ':'Cannot reach the backend. Check your internet and the address.','ข้อมูลเก็บร่วมกันใน Google Sheet ของออฟฟิศ':'Data is shared in the office Google Sheet','ไม่ระบุชื่อ':'Anonymous','ผู้ดูแลระบบ':'Administrator','อัปโหลดรายชื่อเข้าเทอมที่เลือก':'Upload class lists to the selected term','เฉพาะผู้ดูแลระบบที่นำเข้าข้อมูลได้':'Only administrators can import data','นำเข้าข้อมูลเรียบร้อย':'Import complete','ข้อมูลเทอมนี้ใหญ่เกินกว่าจะเก็บในเอกสารเดียว (เกิน 240 KB)':'This term is too large to store as one document (over 240 KB)','ยังไม่ได้เชื่อมต่อที่เก็บข้อมูลร่วม (โหมดทดลอง ไม่บันทึกถาวร)':'Shared storage is not connected (trial mode, nothing is saved)','ยังไม่ได้เชื่อมต่อที่เก็บข้อมูลร่วม':'Shared storage is not connected','บันทึกไม่สำเร็จ อาจไม่มีสิทธิ์ผู้ดูแลระบบหรือเครือข่ายขัดข้อง':'Could not save. You may lack administrator rights, or the network failed.','บันทึกไม่สำเร็จ อาจไม่มีสิทธิ์แก้ไขหรือเครือข่ายขัดข้อง':'Could not save. You may lack edit rights, or the network failed.','บัญชีของคุณมีสิทธิ์ดูอย่างเดียว ไม่สามารถเพิ่มหรือยกเลิกวันเรียนได้':'Your account is view-only and cannot add or cancel class days.','ลบไม่สำเร็จ':'Could not delete','การเชื่อมต่อข้อมูลร่วมมีปัญหา โปรดโหลดหน้าใหม่':'Shared data connection problem. Please reload the page.','กำลังเชื่อมต่อ...':'Connecting...','ยังไม่มีข้อมูล รอผู้ดูแลระบบนำเข้าข้อมูล':'No data yet. Waiting for an administrator to import it.','สถานะ: ผู้ดูแลระบบ แก้ไขเทอมและนำเข้าข้อมูลได้':'Status: Administrator. You can manage terms and import data.','สถานะ: ผู้ใช้ทั่วไป เพิ่มและยกเลิกวันเรียนได้':'Status: Regular user. You can add and cancel class days.','คาบเรียนปกติ':'Regular class','คลิกเพื่อยกเลิกคาบนี้':'Click to cancel this class','ยกเลิกแล้ว · คลิกเพื่อคืนคาบ':'Cancelled · click to restore','คาบปกติที่ยกเลิก':'Cancelled regular classes','คืนคาบ':'Restore',
+'ดูรายละเอียด':'Details','จองแล้ว · คลิกเพื่อยกเลิก':'Booked · click to cancel','ยกเลิกจอง':'Cancel booking','จอง':'Book','งดสอนวันนี้':'Cancelled today','วันหยุด':'Holiday','ไม่ชน':'No conflict','ชดเชย':'Makeup','แก้ไขวันเรียนปกติ':'Edit regular schedule','ใช้เมื่อวิชาใดเปลี่ยนวันหรือเวลาเรียนปกติ เช่นหลังกลางภาค ระบบจะใช้ตารางใหม่ตั้งแต่วันที่ระบุเป็นต้นไป ส่วนวันก่อนหน้ายังเป็นตารางเดิม':'Use this when a course changes its regular day or time, for example after midterms. The new schedule applies from the chosen date onward; earlier dates keep the old schedule.','วันเรียนใหม่':'New class day','มีผลตั้งแต่วันที่':'Effective from','เวลาเริ่ม':'Start time','เวลาเลิก':'End time','บันทึกตารางเรียนใหม่':'Save new schedule','เฉพาะผู้ดูแลระบบที่แก้ไขได้':'Only administrators can edit','ตารางที่มีการเปลี่ยน':'Changed schedules','ยังไม่มีการเปลี่ยนแปลงตาราง':'No schedule changes yet','ตารางเดิม:':'Original schedule:','ตั้งแต่':'From','ลบ':'Delete','เปลี่ยนวันเรียนปกติ':'Changed regular schedule','ลบการเปลี่ยนวันเรียน':'Removed schedule change','บันทึกตารางเรียนใหม่แล้ว':'New schedule saved','กรอกวันที่และเวลาให้ครบ (เวลาเลิกต้องมากกว่าเวลาเริ่ม)':'Fill in the date and times (end time must be after start time)','สถิติการเข้าชม':'Visit statistics','เข้าชมทั้งหมด':'Total visits','วันนี้':'Today','7 วันล่าสุด':'Last 7 days','ผู้เข้าชม (นับตามชื่อ)':'Visitors (by name)','ผู้เข้าชมตามชื่อ':'Visits by name','ตารางและค้นหา':'Schedule & search','ประวัติ':'History','เทอมที่ใช้:':'Current term:','บันทึกการเปลี่ยนแปลง':'Change log','รีเฟรช':'Refresh','ยังไม่ได้โหลด':'Not loaded yet','ยังไม่มีประวัติ':'No history yet','เวลาที่ทำ':'Time','ผู้ทำรายการ':'By','การกระทำ':'Action','กลุ่มเรียน':'Section','วันที่เรียน':'Class date','คาบเวลา':'Period','จองคาบชดเชย':'Booked makeup','ยกเลิกการจอง':'Cancelled booking','ยกเลิกคาบเรียนปกติ':'Cancelled regular class','คืนคาบเรียนปกติ':'Restored regular class','จองแล้ว':'Booked','คลิกเพื่อยกเลิก':'Click to cancel',
+'ระบบหลังบ้านตอบช้าเกินไป ลองใหม่อีกครั้ง':'The backend is responding too slowly, please retry','โหลดตัวอ่านไฟล์ไม่ได้ (เครือข่ายอาจบล็อก cdnjs.cloudflare.com)':'Could not load the file reader (the network may block cdnjs.cloudflare.com)','เกิดข้อผิดพลาดในหน้าเว็บ:':'Page error:','เกิดข้อผิดพลาด:':'Error:','สร้างเทอมใหม่':'Create a new term','เริ่มเทอม':'Term start','สิ้นสุดเทอม':'Term end','แก้ไขวันที่ของเทอมที่เลือก':'Edit dates of the selected term','บันทึกวันที่':'Save dates','ช่วงเทอม':'Term period','ยังไม่ได้ตั้งช่วงวันที่':'Term dates not set','สัปดาห์นี้อยู่นอกช่วงเทอม':'This week is outside the term','กรอกวันที่เริ่มและสิ้นสุดเทอมให้ถูกต้อง':'Enter valid term start and end dates','วันที่นี้อยู่นอกช่วงเทอม':'This date is outside the term','การเชื่อมต่อ':'Connection','ที่อยู่ระบบหลังบ้าน (Web App URL)':'Backend address (Web App URL)','รหัสเข้าใช้ของออฟฟิศ':'Office access code','ชื่อของคุณ (ใช้บันทึกว่าใครเป็นคนจอง)':'Your name (recorded with each booking)','เชื่อมต่อ':'Connect','ชื่อผู้ใช้ผู้ดูแลระบบ':'Admin username','รหัสผ่านผู้ดูแลระบบ':'Admin password','เข้าสู่ระบบผู้ดูแล':'Admin sign in','ออกจากระบบผู้ดูแล':'Admin sign out','ซิงก์ล่าสุด':'Last sync','ยังไม่ได้ตั้งค่าที่อยู่ระบบหลังบ้าน':'Backend address not set','ยังไม่ได้เชื่อมต่อ':'Not connected','กรอกการเชื่อมต่อด้านบนแล้วกดเชื่อมต่อ':'Fill in the connection above and press Connect','กรอกการเชื่อมต่อก่อน':'Fill in the connection first','ไม่พบข้อมูลกลุ่มเรียนในไฟล์':'No sections found in the files','กำลังบันทึกขึ้นระบบ...':'Saving to the system...','รหัสเข้าใช้ไม่ถูกต้อง':'Wrong access code','ผู้ดูแลยังตั้งค่าระบบหลังบ้านไม่ครบ':'The administrator has not finished configuring the backend','ใส่รหัสผิดหลายครั้ง ระบบล็อกชั่วคราว ลองใหม่ใน 5 นาที':'Too many wrong attempts. Locked temporarily, try again in 5 minutes.','ต้องเข้าสู่ระบบผู้ดูแลก่อน':'Admin sign-in required','ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง':'Wrong username or password','ข้อมูลที่ส่งไปไม่ถูกต้อง':'Invalid data sent','ระบบกำลังบันทึกข้อมูลของคนอื่น โปรดลองใหม่':'The system is saving someone else\'s data, please retry','ระบบหลังบ้านขัดข้อง':'Backend error','เชื่อมต่อระบบหลังบ้านไม่ได้ ตรวจสอบอินเทอร์เน็ตและที่อยู่ระบบ (ลองเปิดที่อยู่ระบบในแท็บใหม่ ต้องเห็นคำว่า OK)':'Cannot reach the backend. Check your internet and the address (open the address in a new tab; it should show OK).','ข้อมูลเก็บร่วมกันใน Google Sheet ของออฟฟิศ':'Data is shared in the office Google Sheet','ไม่ระบุชื่อ':'Anonymous','ผู้ดูแลระบบ':'Administrator','อัปโหลดรายชื่อเข้าเทอมที่เลือก':'Upload class lists to the selected term','เฉพาะผู้ดูแลระบบที่นำเข้าข้อมูลได้':'Only administrators can import data','นำเข้าข้อมูลเรียบร้อย':'Import complete','ข้อมูลเทอมนี้ใหญ่เกินกว่าจะเก็บในเอกสารเดียว (เกิน 240 KB)':'This term is too large to store as one document (over 240 KB)','ยังไม่ได้เชื่อมต่อที่เก็บข้อมูลร่วม (โหมดทดลอง ไม่บันทึกถาวร)':'Shared storage is not connected (trial mode, nothing is saved)','ยังไม่ได้เชื่อมต่อที่เก็บข้อมูลร่วม':'Shared storage is not connected','บันทึกไม่สำเร็จ อาจไม่มีสิทธิ์ผู้ดูแลระบบหรือเครือข่ายขัดข้อง':'Could not save. You may lack administrator rights, or the network failed.','บันทึกไม่สำเร็จ อาจไม่มีสิทธิ์แก้ไขหรือเครือข่ายขัดข้อง':'Could not save. You may lack edit rights, or the network failed.','บัญชีของคุณมีสิทธิ์ดูอย่างเดียว ไม่สามารถเพิ่มหรือยกเลิกวันเรียนได้':'Your account is view-only and cannot add or cancel class days.','ลบไม่สำเร็จ':'Could not delete','การเชื่อมต่อข้อมูลร่วมมีปัญหา โปรดโหลดหน้าใหม่':'Shared data connection problem. Please reload the page.','กำลังเชื่อมต่อ...':'Connecting...','ยังไม่มีข้อมูล รอผู้ดูแลระบบนำเข้าข้อมูล':'No data yet. Waiting for an administrator to import it.','สถานะ: ผู้ดูแลระบบ แก้ไขเทอมและนำเข้าข้อมูลได้':'Status: Administrator. You can manage terms and import data.','สถานะ: ผู้ใช้ทั่วไป เพิ่มและยกเลิกวันเรียนได้':'Status: Regular user. You can add and cancel class days.','คาบเรียนปกติ':'Regular class','คลิกเพื่อยกเลิกคาบนี้':'Click to cancel this class','ยกเลิกแล้ว · คลิกเพื่อคืนคาบ':'Cancelled · click to restore','คาบปกติที่ยกเลิก':'Cancelled regular classes','คืนคาบ':'Restore',
 'นัดชดเชยที่จองไว้':'Booked makeup classes','ยังไม่มี':'None yet','แสดงเป็น CSV (คัดลอกได้)':'Show as CSV (copyable)','ล้างทั้งหมด':'Clear all','นัดที่จองไว้จะถูกนับเป็นเวลาที่นักศึกษาไม่ว่างเมื่อค้นหากลุ่มอื่น ระบบยังไม่ตรวจห้องเรียนและอาจารย์ผู้สอน':'Booked makeups count as busy time when searching other sections. Rooms and instructors are not checked.',
 'อาทิตย์':'Sun','จันทร์':'Mon','อังคาร':'Tue','พุธ':'Wed','พฤหัสบดี':'Thu','ศุกร์':'Fri','เสาร์':'Sat','อาท.':'Sun','จัน.':'Mon','อัง.':'Tue','พุธ.':'Wed','พฤห.':'Thu','ศุก.':'Fri','เสา.':'Sat'};
 const PAIRS=Object.entries(EN).sort((a,b)=>b[0].length-a[0].length);
-const RX=[[/เทอม (.+?): (\d+) กลุ่มเรียน นักศึกษา (\d+) คน/,'Term $1: $2 sections, $3 students'],[/พบ (\d+) ช่วงเวลา \(ไม่ชนเลย (\d+)\) แสดง 120 รายการแรก/,'$1 slots found ($2 with no conflicts), showing the first 120'],[/ชน (\d+) คน/g,'Conflict $1'],[/และอีก (\d+) กลุ่ม/,'and $1 more sections'],[/อ่านไฟล์ไม่ได้ (\d+) ไฟล์/,'Could not read $1 file(s)'],[/(\d+) คน/g,'$1 students']];
+const RX=[[/เทอม (.+?): (\d+) กลุ่มเรียน นักศึกษา (\d+) คน/,'Term $1: $2 sections, $3 students'],[/พบ (\d+) ช่วงเวลา \(ไม่ชนเลย (\d+)\) แสดง 120 รายการแรก/,'$1 slots found ($2 with no conflicts), showing the first 120'],[/ชน (\d+) คน/g,'Conflict $1'],[/และอีก (\d+) กลุ่ม/,'and $1 more sections'],[/อ่านไฟล์ไม่ได้ (\d+) ไฟล์/,'Could not read $1 file(s)'],[/(\d+) ครั้ง/g,'$1 visits'],[/(\d+) คน/g,'$1 students']];
 const trs=s=>{for(const[r,e]of RX)s=s.replace(r,e);for(const[k,v]of PAIRS)if(s.includes(k))s=s.split(k).join(v);return s};
 const nodes=new WeakMap();
 function tn(n){const p=n.parentNode&&n.parentNode.nodeName;if(p==='SCRIPT'||p==='STYLE'||p==='TEXTAREA')return;
